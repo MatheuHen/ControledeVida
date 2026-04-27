@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
+import { Providers } from "@/app/providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AppControleDeVidaXen",
-  description: "Base inicial do AppControleDeVidaXen",
+  description: "Controle finanças, metas e horas de vida em um só lugar.",
 };
 
 export default function RootLayout({
@@ -24,10 +26,30 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="pt-BR"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var storedTheme = window.localStorage.getItem('theme');
+                var theme = storedTheme === 'light' ? 'light' : 'dark';
+                var root = document.documentElement;
+                root.classList.toggle('dark', theme === 'dark');
+                root.style.colorScheme = theme;
+              } catch (error) {}
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

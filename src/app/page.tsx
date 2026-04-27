@@ -1,34 +1,59 @@
+"use client";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useProfile } from "@/hooks/useProfile";
+import { useSession } from "@/hooks/useSession";
+
 export default function Home() {
+  const { data: session } = useSession();
+  const { data: profile, isLoading: isProfileLoading } = useProfile();
+  const displayName = profile?.full_name || session?.user.email || "Usuário";
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 px-6 py-24 text-center text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
-      <div className="w-full max-w-3xl rounded-3xl border border-zinc-200 bg-white p-10 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
-          Setup concluído
-        </span>
-        <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl">
-          AppControleDeVidaXen
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-zinc-600 dark:text-zinc-300 sm:text-lg">
-          Projeto iniciado com Next.js 16, App Router, TypeScript strict,
-          Tailwind CSS 4 e integração pronta para Supabase.
-        </p>
-        <div className="mt-10 grid gap-4 text-left sm:grid-cols-2">
-          <div className="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-            <h2 className="font-semibold">Stack base</h2>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-              Next.js 16.2.1 com aliases `@/*`, Tailwind 4 via PostCSS e
-              estrutura inicial em `src/`.
+    <div className="space-y-6">
+      <Card className="border-border bg-panel shadow-xl shadow-black/10">
+        <CardHeader>
+          <span className="inline-flex w-fit rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-500">
+            Sessão autenticada
+          </span>
+          <CardTitle className="text-foreground">Olá, {displayName}</CardTitle>
+          <CardDescription className="max-w-2xl text-muted-foreground">
+            Seu dashboard principal já está pronto dentro do novo AppShell, com
+            tema persistente, navegação lateral responsiva e base preparada para
+            os próximos módulos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-border bg-background/40 p-5">
+            <h2 className="font-semibold text-foreground">Usuário</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {session?.user.email ?? "Sessão indisponível"}
             </p>
           </div>
-          <div className="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-            <h2 className="font-semibold">Serviços</h2>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-              Cliente browser do Supabase disponível em
-              `src/services/supabase/client.ts`.
+          <div className="rounded-2xl border border-border bg-background/40 p-5">
+            <h2 className="font-semibold text-foreground">Perfil</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {isProfileLoading
+                ? "Carregando perfil..."
+                : profile?.full_name ||
+                  "Perfil carregado a partir da tabela profiles"}
             </p>
           </div>
-        </div>
-      </div>
-    </main>
+          <div className="rounded-2xl border border-border bg-background/40 p-5">
+            <h2 className="font-semibold text-foreground">Status</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Layout principal ativo com animações, dark mode e navegação entre
+              áreas.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
