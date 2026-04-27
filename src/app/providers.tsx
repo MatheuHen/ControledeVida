@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ActiveUserProvider } from "@/hooks/useActiveUser";
 import { getSession, onAuthStateChange } from "@/services/auth.service";
 import { sessionQueryKey } from "@/hooks/useSession";
 
@@ -55,7 +56,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AppShell>{children}</AppShell>
+        <ActiveUserProvider>
+          <AppShell>{children}</AppShell>
+        </ActiveUserProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
