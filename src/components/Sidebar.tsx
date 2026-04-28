@@ -13,7 +13,25 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useLogout } from "@/hooks/useLogout";
+import { useActiveUser } from "@/hooks/useActiveUser";
 import { cn } from "@/lib/utils";
+
+// Map route href -> canView flag key
+const routePermissionMap: Record<string, keyof ReturnType<typeof useActiveUser> | null> = {
+  "/": "canViewDashboard",
+  "/finances": "canViewFinances",
+  "/categories": "canViewCategories",
+  "/goals": "canViewGoals",
+  "/savings": "canViewSavings",
+  "/emergency": "canViewEmergency",
+  "/investments": "canViewInvestments",
+  "/life-cost": "canViewLifeCost",
+  "/analytics": "canViewAnalytics",
+  // Always visible routes
+  "/global": null,
+  "/shared": null,
+  "/settings": null,
+};
 
 function SidebarContent({
   pathname,
@@ -23,6 +41,13 @@ function SidebarContent({
   onNavigate?: () => void;
 }) {
   const logout = useLogout();
+  const activeUser = useActiveUser();
+
+  const visibleRoutes = appRoutes.filter((route) => {
+    const permKey = routePermissionMap[route.href];
+    if (permKey === null || permKey === undefined) return true;
+    return Boolean(activeUser[permKey]);
+  });
 
   return (
     <div className="flex h-full flex-col bg-[linear-gradient(180deg,#020617_0%,#06131f_100%)] text-sidebar-foreground">
@@ -40,7 +65,7 @@ function SidebarContent({
 
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-1.5">
-          {appRoutes.map((route) => {
+          {visibleRoutes.map((route) => {
             const isActive = pathname === route.href;
             const Icon = route.icon;
 

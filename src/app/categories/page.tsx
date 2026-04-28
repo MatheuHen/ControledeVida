@@ -8,9 +8,9 @@ import { Plus, Pencil, Trash2 } from "lucide-react"
 
 import { useActiveUser } from "@/hooks/useActiveUser"
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/useCategories"
+import { CATEGORY_ICONS, ICON_GROUPS, getIconByName } from "@/lib/category-icons"
 
 import type { Category } from "@/services/categories.service"
-import type { TransactionType } from "@/services/transactions.service"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,6 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const categorySchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -123,7 +125,6 @@ export default function CategoriesPage() {
   return (
     <div className="min-h-screen bg-zinc-900 p-6">
       <div className="mx-auto max-w-5xl space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-zinc-100">Categorias</h1>
@@ -135,7 +136,6 @@ export default function CategoriesPage() {
           </Button>
         </div>
 
-        {/* Grid */}
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -171,7 +171,7 @@ export default function CategoriesPage() {
 
       {/* Create Dialog */}
       <Dialog open={openCreate} onOpenChange={setOpenCreate}>
-        <DialogContent className="border-white/10 bg-zinc-900 text-zinc-100 sm:max-w-md">
+        <DialogContent className="border-white/10 bg-zinc-900 text-zinc-100 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Nova Categoria</DialogTitle>
           </DialogHeader>
@@ -191,7 +191,7 @@ export default function CategoriesPage() {
 
       {/* Edit Dialog */}
       <Dialog open={Boolean(editItem)} onOpenChange={(open) => { if (!open) setEditItem(null) }}>
-        <DialogContent className="border-white/10 bg-zinc-900 text-zinc-100 sm:max-w-md">
+        <DialogContent className="border-white/10 bg-zinc-900 text-zinc-100 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Editar Categoria</DialogTitle>
           </DialogHeader>
@@ -223,16 +223,20 @@ function CategoryCard({
   onDelete: () => void
   isDeleting: boolean
 }) {
+  const IconComponent = category.icon ? getIconByName(category.icon) : null
+
   return (
     <div className="group relative rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/8">
       <div className="flex items-start gap-3">
-        {/* Color dot + icon */}
         <div
           className="flex h-10 w-10 items-center justify-center rounded-full text-lg"
           style={{ backgroundColor: category.color ? `${category.color}33` : "#10b98133" }}
         >
-          {category.icon ? (
-            <span>{category.icon}</span>
+          {IconComponent ? (
+            <IconComponent
+              className="h-5 w-5"
+              style={{ color: category.color ?? "#10b981" }}
+            />
           ) : (
             <span
               className="h-4 w-4 rounded-full"
@@ -243,14 +247,16 @@ function CategoryCard({
 
         <div className="flex-1 min-w-0">
           <p className="truncate font-medium text-zinc-100">{category.name}</p>
-          <div className="mt-1">
+          <div className="mt-1 flex items-center gap-1.5">
             <Badge variant={category.type === "income" ? "success" : "destructive"}>
               {category.type === "income" ? "Receita" : "Despesa"}
             </Badge>
+            {category.icon && (
+              <span className="text-xs text-zinc-500">{category.icon}</span>
+            )}
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <Button variant="ghost" className="h-8 px-2" onClick={onEdit}>
             <Pencil className="h-3.5 w-3.5" />
@@ -265,6 +271,78 @@ function CategoryCard({
           </Button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function IconPicker({
+  value,
+  onChange,
+}: {
+  value: string | null | undefined
+  onChange: (name: string | null) => void
+}) {
+  const [activeGroup, setActiveGroup] = useState(ICON_GROUPS[0])
+  const iconsInGroup = CATEGORY_ICONS.filter((i) => i.group === activeGroup)
+
+  return (
+    <div className="space-y-2">
+      <ScrollArea className="w-full" style={{ overflowX: "auto" }}>
+        <div className="flex gap-1 pb-1">
+          {ICON_GROUPS.map((group) => (
+            <button
+              key={group}
+              type="button"
+              onClick={() => setActiveGroup(group)}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeGroup === group
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  : "border border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10"
+              }`}
+            >
+              {group}
+            </button>
+          ))}
+        </div>
+      </ScrollArea>
+
+      <div className="grid grid-cols-8 gap-1.5 max-h-40 overflow-y-auto pr-1">
+        {/* None option */}
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className={`flex h-9 w-9 items-center justify-center rounded-lg border text-xs transition-colors ${
+            !value
+              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+              : "border-white/10 bg-white/5 text-zinc-500 hover:bg-white/10"
+          }`}
+          title="Sem ícone"
+        >
+          —
+        </button>
+        {iconsInGroup.map((cat) => {
+          const Icon = cat.icon
+          const isSelected = value === cat.name
+          return (
+            <button
+              key={cat.name}
+              type="button"
+              onClick={() => onChange(isSelected ? null : cat.name)}
+              title={cat.name}
+              className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
+                isSelected
+                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                  : "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          )
+        })}
+      </div>
+      {value && (
+        <p className="text-xs text-zinc-500">Selecionado: {value}</p>
+      )}
     </div>
   )
 }
@@ -301,9 +379,6 @@ function CategoryFormFields({ form }: { form: UseFormReturn<CategoryFormData> })
             </Select>
           )}
         />
-        {form.formState.errors.type && (
-          <p className="text-xs text-red-400">{form.formState.errors.type.message}</p>
-        )}
       </div>
 
       <div className="space-y-1.5">
@@ -337,11 +412,13 @@ function CategoryFormFields({ form }: { form: UseFormReturn<CategoryFormData> })
       </div>
 
       <div className="space-y-1.5">
-        <Label>Ícone (opcional)</Label>
-        <Input
-          {...form.register("icon")}
-          placeholder="Ex: 🍔, 💰, ..."
-          className="border-white/10 bg-white/5 text-zinc-100 placeholder:text-zinc-500"
+        <Label>Ícone</Label>
+        <Controller
+          control={form.control}
+          name="icon"
+          render={({ field }) => (
+            <IconPicker value={field.value} onChange={field.onChange} />
+          )}
         />
       </div>
     </>

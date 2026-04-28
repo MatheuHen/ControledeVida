@@ -23,12 +23,8 @@ export function SharedContextBanner() {
     } else {
       const share = acceptedShares.find((s) => s.owner_id === targetId);
       if (!share) return;
-      const perm = share.permission_level;
-      setSharedContext(targetId, {
-        canViewFinances: perm === "full" || perm === "finances",
-        canViewInvestments: perm === "full" || perm === "investments",
-        canViewReserve: perm === "full",
-      });
+      const permissions = Array.isArray(share.permissions) ? share.permissions : [];
+      setSharedContext(targetId, permissions);
     }
   }
 

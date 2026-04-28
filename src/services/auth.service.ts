@@ -5,7 +5,13 @@ export type Profile = {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  avatar_preset: string | null;
   hourly_rate: number | null;
+  cpf: string | null;
+  phone: string | null;
+  salary_monthly: number | null;
+  work_hours_per_day: number | null;
+  work_days_per_week: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -121,7 +127,7 @@ export async function getProfile(userId: string) {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url, hourly_rate, created_at, updated_at")
+    .select("id, full_name, avatar_url, avatar_preset, hourly_rate, cpf, phone, salary_monthly, work_hours_per_day, work_days_per_week, created_at, updated_at")
     .eq("id", userId)
     .single();
 

@@ -1,6 +1,6 @@
 import { createClient } from "@/services/supabase/client";
 
-export type SharedAccessPermission = "full" | "finances" | "investments";
+export type SharedAccessPermission = "full" | "finances" | "investments" | "custom";
 export type SharedAccessStatus = "pending" | "accepted" | "revoked";
 
 export type SharedAccess = {
@@ -9,6 +9,7 @@ export type SharedAccess = {
   target_user_id: string | null;
   target_user_email: string;
   permission_level: SharedAccessPermission;
+  permissions: string[];
   status: SharedAccessStatus;
   created_at: string;
   updated_at: string;
@@ -17,7 +18,7 @@ export type SharedAccess = {
 export type CreateSharedAccessData = {
   owner_id: string;
   target_user_email: string;
-  permission_level: SharedAccessPermission;
+  permissions: string[];
 };
 
 const supabase = createClient();
@@ -46,7 +47,13 @@ export const sharedService = {
   async createInvite(data: CreateSharedAccessData) {
     const { data: created, error } = await supabase
       .from("shared_access")
-      .insert({ ...data, status: "pending" })
+      .insert({
+        owner_id: data.owner_id,
+        target_user_email: data.target_user_email,
+        permission_level: "custom",
+        permissions: data.permissions,
+        status: "pending",
+      })
       .select()
       .single();
     if (error) throw error;

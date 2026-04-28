@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Controller } from "react-hook-form"
 import { UserPlus } from "lucide-react"
 
 import { useActiveUser } from "@/hooks/useActiveUser"
@@ -17,7 +16,7 @@ import {
 } from "@/hooks/useShared"
 import { useSession } from "@/hooks/useSession"
 
-import type { SharedAccess, SharedAccessPermission, SharedAccessStatus } from "@/services/shared.service"
+import type { SharedAccess, SharedAccessStatus } from "@/services/shared.service"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,13 +31,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   Table,
   TableBody,
   TableCell,
@@ -48,18 +40,24 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+const MODULE_OPTIONS = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "finances", label: "Finanças" },
+  { id: "categories", label: "Categorias" },
+  { id: "goals", label: "Metas" },
+  { id: "savings", label: "Economias" },
+  { id: "emergency", label: "Reserva" },
+  { id: "investments", label: "Investimentos" },
+  { id: "life-cost", label: "Horas de Vida" },
+  { id: "analytics", label: "Análises" },
+] as const
+
 const inviteSchema = z.object({
   target_user_email: z.string().email("E-mail inválido"),
-  permission_level: z.enum(["full", "finances", "investments"] as const),
+  permissions: z.array(z.string()).min(1, "Selecione ao menos uma permissão"),
 })
 
 type InviteFormData = z.infer<typeof inviteSchema>
-
-const permissionLabels: Record<SharedAccessPermission, string> = {
-  full: "Acesso Total",
-  finances: "Finanças",
-  investments: "Investimentos",
-}
 
 const statusBadgeVariant: Record<SharedAccessStatus, "warning" | "success" | "secondary"> = {
   pending: "warning",
@@ -74,14 +72,37 @@ const statusLabels: Record<SharedAccessStatus, string> = {
 }
 
 function defaultValues(): InviteFormData {
-  return { target_user_email: "", permission_level: "finances" }
+  return { target_user_email: "", permissions: ["dashboard"] }
+}
+
+function PermissionBadges({ permissions }: { permissions: string[] }) {
+  const labels: Record<string, string> = {
+    dashboard: "Dashboard",
+    finances: "Finanças",
+    categories: "Categorias",
+    goals: "Metas",
+    savings: "Economias",
+    emergency: "Reserva",
+    investments: "Investimentos",
+    "life-cost": "Horas de Vida",
+    analytics: "Análises",
+  }
+  if (!permissions || permissions.length === 0) return <span className="text-zinc-500 text-xs">Sem permissões</span>
+  return (
+    <div className="flex flex-wrap gap-1">
+      {permissions.map((p) => (
+        <Badge key={p} variant="outline" className="text-xs">
+          {labels[p] ?? p}
+        </Badge>
+      ))}
+    </div>
+  )
 }
 
 export default function SharedPage() {
   const { activeUserId } = useActiveUser()
   const { data: session } = useSession()
   const userId = session?.user?.id ?? ""
-  const activeId = activeUserId ?? userId
 
   const [openInvite, setOpenInvite] = useState(false)
 
@@ -96,13 +117,32 @@ export default function SharedPage() {
     defaultValues: defaultValues(),
   })
 
+  const watchedPermissions = form.watch("permissions")
+
+  function togglePermission(id: string) {
+    const current = form.getValues("permissions")
+    if (current.includes(id)) {
+      form.setValue("permissions", current.filter((p) => p !== id), { shouldValidate: true })
+    } else {
+      form.setValue("permissions", [...current, id], { shouldValidate: true })
+    }
+  }
+
+  function selectAll() {
+    form.setValue("permissions", MODULE_OPTIONS.map((m) => m.id), { shouldValidate: true })
+  }
+
+  function clearAll() {
+    form.setValue("permissions", [], { shouldValidate: true })
+  }
+
   const onInviteSubmit = form.handleSubmit(async (data) => {
     if (!userId) return
     try {
       await createInvite.mutateAsync({
         owner_id: userId,
         target_user_email: data.target_user_email,
-        permission_level: data.permission_level,
+        permissions: data.permissions,
       })
       setOpenInvite(false)
       form.reset(defaultValues())
@@ -130,7 +170,6 @@ export default function SharedPage() {
   return (
     <div className="min-h-screen bg-zinc-900 p-6">
       <div className="mx-auto max-w-5xl space-y-6">
-        {/* Header */}
         <div>
           <h1 className="text-2xl font-semibold text-zinc-100">Compartilhamento</h1>
           <p className="mt-1 text-sm text-zinc-400">Gerencie o acesso compartilhado à sua conta</p>
@@ -142,7 +181,6 @@ export default function SharedPage() {
             <TabsTrigger value="comigo">Compartilhado Comigo</TabsTrigger>
           </TabsList>
 
-          {/* Meus Compartilhamentos */}
           <TabsContent value="meus">
             <div className="space-y-4">
               <div className="flex justify-end">
@@ -157,7 +195,7 @@ export default function SharedPage() {
                   <TableHeader>
                     <TableRow className="border-white/10 hover:bg-transparent">
                       <TableHead className="text-zinc-400">E-mail</TableHead>
-                      <TableHead className="text-zinc-400">Permissão</TableHead>
+                      <TableHead className="text-zinc-400">Permissões</TableHead>
                       <TableHead className="text-zinc-400">Status</TableHead>
                       <TableHead className="text-right text-zinc-400">Ações</TableHead>
                     </TableRow>
@@ -167,7 +205,7 @@ export default function SharedPage() {
                       Array.from({ length: 3 }).map((_, i) => (
                         <TableRow key={i} className="border-white/10">
                           <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                          <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                          <TableCell><Skeleton className="h-5 w-48 rounded-full" /></TableCell>
                           <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                           <TableCell><Skeleton className="ml-auto h-9 w-20" /></TableCell>
                         </TableRow>
@@ -183,7 +221,7 @@ export default function SharedPage() {
                         <TableRow key={share.id} className="border-white/10 hover:bg-white/5">
                           <TableCell className="text-zinc-100">{share.target_user_email}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{permissionLabels[share.permission_level]}</Badge>
+                            <PermissionBadges permissions={Array.isArray(share.permissions) ? share.permissions : []} />
                           </TableCell>
                           <TableCell>
                             <Badge variant={statusBadgeVariant[share.status]}>
@@ -211,14 +249,13 @@ export default function SharedPage() {
             </div>
           </TabsContent>
 
-          {/* Compartilhado Comigo */}
           <TabsContent value="comigo">
             <div className="rounded-xl border border-white/10 bg-white/5">
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/10 hover:bg-transparent">
                     <TableHead className="text-zinc-400">Proprietário</TableHead>
-                    <TableHead className="text-zinc-400">Permissão</TableHead>
+                    <TableHead className="text-zinc-400">Permissões</TableHead>
                     <TableHead className="text-zinc-400">Status</TableHead>
                     <TableHead className="text-right text-zinc-400">Ações</TableHead>
                   </TableRow>
@@ -228,7 +265,7 @@ export default function SharedPage() {
                     Array.from({ length: 3 }).map((_, i) => (
                       <TableRow key={i} className="border-white/10">
                         <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-48 rounded-full" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                         <TableCell><Skeleton className="ml-auto h-9 w-20" /></TableCell>
                       </TableRow>
@@ -244,7 +281,7 @@ export default function SharedPage() {
                       <TableRow key={share.id} className="border-white/10 hover:bg-white/5">
                         <TableCell className="text-zinc-100">{share.target_user_email}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{permissionLabels[share.permission_level]}</Badge>
+                          <PermissionBadges permissions={Array.isArray(share.permissions) ? share.permissions : []} />
                         </TableCell>
                         <TableCell>
                           <Badge variant={statusBadgeVariant[share.status]}>
@@ -292,26 +329,61 @@ export default function SharedPage() {
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Nível de acesso</Label>
-              <Controller
-                control={form.control}
-                name="permission_level"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="border-white/10 bg-white/5 text-zinc-100">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full">Acesso Total</SelectItem>
-                      <SelectItem value="finances">Finanças</SelectItem>
-                      <SelectItem value="investments">Investimentos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {form.formState.errors.permission_level && (
-                <p className="text-xs text-red-400">{form.formState.errors.permission_level.message}</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Módulos com acesso</Label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={selectAll}
+                    className="text-xs text-emerald-400 hover:underline"
+                  >
+                    Selecionar todos
+                  </button>
+                  <span className="text-zinc-600">·</span>
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="text-xs text-zinc-400 hover:underline"
+                  >
+                    Limpar
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {MODULE_OPTIONS.map((mod) => {
+                  const checked = watchedPermissions.includes(mod.id)
+                  return (
+                    <label
+                      key={mod.id}
+                      className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                        checked
+                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                          : "border-white/10 bg-white/5 text-zinc-400 hover:bg-white/8"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={checked}
+                        onChange={() => togglePermission(mod.id)}
+                      />
+                      <span className={`h-3.5 w-3.5 rounded border flex items-center justify-center ${
+                        checked ? "border-emerald-500 bg-emerald-500" : "border-zinc-600"
+                      }`}>
+                        {checked && (
+                          <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 12 12">
+                            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                      {mod.label}
+                    </label>
+                  )
+                })}
+              </div>
+              {form.formState.errors.permissions && (
+                <p className="text-xs text-red-400">{form.formState.errors.permissions.message}</p>
               )}
             </div>
 

@@ -10,21 +10,45 @@ import {
 } from "react";
 import { useSession } from "@/hooks/useSession";
 
+export type AppModule =
+  | "dashboard"
+  | "finances"
+  | "categories"
+  | "goals"
+  | "savings"
+  | "emergency"
+  | "investments"
+  | "life-cost"
+  | "analytics";
+
+export const ALL_MODULES: AppModule[] = [
+  "dashboard",
+  "finances",
+  "categories",
+  "goals",
+  "savings",
+  "emergency",
+  "investments",
+  "life-cost",
+  "analytics",
+];
+
 type ActiveUserContextValue = {
   activeUserId: string | null;
   ownUserId: string | null;
   isSharedView: boolean;
+  viewingMode: "own" | "shared";
+  permissions: string[];
+  canViewDashboard: boolean;
   canViewFinances: boolean;
+  canViewCategories: boolean;
+  canViewGoals: boolean;
+  canViewSavings: boolean;
+  canViewEmergency: boolean;
   canViewInvestments: boolean;
-  canViewReserve: boolean;
-  setSharedContext: (
-    userId: string,
-    permissions: {
-      canViewFinances: boolean;
-      canViewInvestments: boolean;
-      canViewReserve: boolean;
-    },
-  ) => void;
+  canViewLifeCost: boolean;
+  canViewAnalytics: boolean;
+  setSharedContext: (userId: string, permissions: string[]) => void;
   clearSharedContext: () => void;
 };
 
@@ -38,21 +62,12 @@ export function ActiveUserProvider({ children }: { children: ReactNode }) {
 
   const [sharedContext, setSharedContextState] = useState<{
     userId: string;
-    canViewFinances: boolean;
-    canViewInvestments: boolean;
-    canViewReserve: boolean;
+    permissions: string[];
   } | null>(null);
 
   const setSharedContext = useCallback(
-    (
-      userId: string,
-      permissions: {
-        canViewFinances: boolean;
-        canViewInvestments: boolean;
-        canViewReserve: boolean;
-      },
-    ) => {
-      setSharedContextState({ userId, ...permissions });
+    (userId: string, permissions: string[]) => {
+      setSharedContextState({ userId, permissions });
     },
     [],
   );
@@ -61,19 +76,32 @@ export function ActiveUserProvider({ children }: { children: ReactNode }) {
     setSharedContextState(null);
   }, []);
 
-  const value = useMemo<ActiveUserContextValue>(
-    () => ({
+  const value = useMemo<ActiveUserContextValue>(() => {
+    const isSharedView = Boolean(sharedContext);
+    const permissions = sharedContext?.permissions ?? [];
+
+    const canView = (module: AppModule) =>
+      !isSharedView || permissions.includes(module);
+
+    return {
       activeUserId: sharedContext?.userId ?? ownUserId,
       ownUserId,
-      isSharedView: Boolean(sharedContext),
-      canViewFinances: sharedContext?.canViewFinances ?? true,
-      canViewInvestments: sharedContext?.canViewInvestments ?? true,
-      canViewReserve: sharedContext?.canViewReserve ?? true,
+      isSharedView,
+      viewingMode: isSharedView ? "shared" : "own",
+      permissions,
+      canViewDashboard: canView("dashboard"),
+      canViewFinances: canView("finances"),
+      canViewCategories: canView("categories"),
+      canViewGoals: canView("goals"),
+      canViewSavings: canView("savings"),
+      canViewEmergency: canView("emergency"),
+      canViewInvestments: canView("investments"),
+      canViewLifeCost: canView("life-cost"),
+      canViewAnalytics: canView("analytics"),
       setSharedContext,
       clearSharedContext,
-    }),
-    [sharedContext, ownUserId, setSharedContext, clearSharedContext],
-  );
+    };
+  }, [sharedContext, ownUserId, setSharedContext, clearSharedContext]);
 
   return (
     <ActiveUserContext.Provider value={value}>

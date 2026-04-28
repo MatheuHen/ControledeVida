@@ -1,12 +1,11 @@
 'use client'
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useQueryClient, useMutation } from "@tanstack/react-query"
 
-import { useActiveUser } from "@/hooks/useActiveUser"
 import { useProfile } from "@/hooks/useProfile"
 import { useSession } from "@/hooks/useSession"
 import { profileService } from "@/services/profile.service"
@@ -16,14 +15,45 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MoneyInput } from "@/components/ui/money-input"
+import { ThemeToggle } from "@/components/ThemeToggle"
+
+const AVATAR_PRESETS = [
+  "👨‍💼", "👩‍💼", "👨‍💻", "👩‍💻", "👨‍🎓", "👩‍🎓",
+  "👨‍🔬", "👩‍🔬", "👨‍🎨", "👩‍🎨", "👨‍⚕️", "👩‍⚕️",
+  "👨‍🍳", "👩‍🍳", "👨‍🚀", "👩‍🚀", "🦁", "🐱", "🐶", "🦊",
+]
+
+function applyCpfMask(value: string) {
+  return value
+    .replace(/\D/g, "")
+    .slice(0, 11)
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4")
+}
+
+function applyPhoneMask(value: string) {
+  return value
+    .replace(/\D/g, "")
+    .slice(0, 11)
+    .replace(/(\d{2})(\d)/, "($1)$2")
+    .replace(/\((\d{2})\)(\d{5})(\d)/, "($1)$2-$3")
+}
 
 const profileSchema = z.object({
   full_name: z.string().optional().nullable(),
+  cpf: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  avatar_preset: z.string().optional().nullable(),
   avatar_url: z.string().url("URL inválida").optional().or(z.literal("")).nullable(),
 })
 
 const hourlyRateSchema = z.object({
-  hourly_rate: z.number({ error: "Digite um valor" }).positive("Valor deve ser maior que zero").nullable(),
+  mode: z.enum(["manual", "auto"]),
+  hourly_rate: z.number().positive("Deve ser positivo").nullable().optional(),
+  salary_monthly: z.number().positive("Deve ser positivo").nullable().optional(),
+  work_hours_per_day: z.number().positive("Deve ser positivo").nullable().optional(),
+  work_days_per_week: z.number().positive("Deve ser positivo").nullable().optional(),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
@@ -32,22 +62,21 @@ type HourlyRateFormData = z.infer<typeof hourlyRateSchema>
 export default function SettingsPage() {
   const { data: session } = useSession()
   const userId = session?.user?.id ?? ""
+  const userEmail = session?.user?.email ?? ""
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading } = useProfile()
 
-  // Profile mutation
   const profileMutation = useMutation({
-    mutationFn: (data: { full_name?: string | null; avatar_url?: string | null }) =>
+    mutationFn: (data: Parameters<typeof profileService.update>[1]) =>
       profileService.update(userId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile", userId] })
     },
   })
 
-  // Hourly rate mutation
   const hourlyRateMutation = useMutation({
-    mutationFn: (data: { hourly_rate: number | null }) =>
+    mutationFn: (data: Parameters<typeof profileService.update>[1]) =>
       profileService.update(userId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile", userId] })
@@ -56,31 +85,61 @@ export default function SettingsPage() {
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { full_name: "", avatar_url: "" },
+    defaultValues: { full_name: "", cpf: "", phone: "", avatar_preset: null, avatar_url: "" },
   })
 
   const hourlyRateForm = useForm<HourlyRateFormData>({
     resolver: zodResolver(hourlyRateSchema),
-    defaultValues: { hourly_rate: null },
+    defaultValues: {
+      mode: "manual",
+      hourly_rate: null,
+      salary_monthly: null,
+      work_hours_per_day: 8,
+      work_days_per_week: 5,
+    },
   })
 
-  // Sync forms when profile loads
+  const watchMode = hourlyRateForm.watch("mode")
+  const watchSalary = hourlyRateForm.watch("salary_monthly")
+  const watchHours = hourlyRateForm.watch("work_hours_per_day")
+  const watchDays = hourlyRateForm.watch("work_days_per_week")
+
+  const computedHourlyRate =
+    watchMode === "auto" &&
+    watchSalary &&
+    watchHours &&
+    watchDays
+      ? watchSalary / (watchHours * watchDays * 4.33)
+      : null
+
   useEffect(() => {
     if (profile) {
       profileForm.reset({
         full_name: profile.full_name ?? "",
+        cpf: profile.cpf ?? "",
+        phone: profile.phone ?? "",
+        avatar_preset: profile.avatar_preset ?? null,
         avatar_url: profile.avatar_url ?? "",
       })
+      const hasAutoFields = profile.salary_monthly || profile.work_hours_per_day || profile.work_days_per_week
       hourlyRateForm.reset({
+        mode: hasAutoFields ? "auto" : "manual",
         hourly_rate: profile.hourly_rate ?? null,
+        salary_monthly: profile.salary_monthly ?? null,
+        work_hours_per_day: profile.work_hours_per_day ?? 8,
+        work_days_per_week: profile.work_days_per_week ?? 5,
       })
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile])
 
   const onProfileSubmit = profileForm.handleSubmit(async (data) => {
     try {
       await profileMutation.mutateAsync({
         full_name: data.full_name || null,
+        cpf: data.cpf || null,
+        phone: data.phone || null,
+        avatar_preset: data.avatar_preset || null,
         avatar_url: data.avatar_url || null,
       })
     } catch (err) {
@@ -90,22 +149,37 @@ export default function SettingsPage() {
 
   const onHourlyRateSubmit = hourlyRateForm.handleSubmit(async (data) => {
     try {
-      await hourlyRateMutation.mutateAsync({ hourly_rate: data.hourly_rate })
+      if (data.mode === "manual") {
+        await hourlyRateMutation.mutateAsync({
+          hourly_rate: data.hourly_rate ?? null,
+          salary_monthly: null,
+          work_hours_per_day: null,
+          work_days_per_week: null,
+        })
+      } else {
+        await hourlyRateMutation.mutateAsync({
+          hourly_rate: computedHourlyRate ?? null,
+          salary_monthly: data.salary_monthly ?? null,
+          work_hours_per_day: data.work_hours_per_day ?? null,
+          work_days_per_week: data.work_days_per_week ?? null,
+        })
+      }
     } catch (err) {
       console.error(err)
     }
   })
 
+  const selectedPreset = profileForm.watch("avatar_preset")
+
   return (
     <div className="min-h-screen bg-zinc-900 p-6">
       <div className="mx-auto max-w-2xl space-y-8">
-        {/* Header */}
         <div>
           <h1 className="text-2xl font-semibold text-zinc-100">Configurações</h1>
           <p className="mt-1 text-sm text-zinc-400">Gerencie suas informações pessoais</p>
         </div>
 
-        {/* Profile Section */}
+        {/* Seção 1: Perfil */}
         <section className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-5">
           <div>
             <h2 className="text-base font-semibold text-zinc-100">Perfil</h2>
@@ -114,14 +188,12 @@ export default function SettingsPage() {
 
           {isLoading ? (
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-11 w-full rounded-xl" />
-              </div>
-              <div className="space-y-1.5">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-11 w-full rounded-xl" />
-              </div>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-1.5">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-11 w-full rounded-xl" />
+                </div>
+              ))}
               <Skeleton className="h-11 w-28 rounded-xl" />
             </div>
           ) : (
@@ -134,13 +206,80 @@ export default function SettingsPage() {
                   placeholder="Seu nome completo"
                   className="border-white/10 bg-white/5 text-zinc-100 placeholder:text-zinc-500"
                 />
-                {profileForm.formState.errors.full_name && (
-                  <p className="text-xs text-red-400">{profileForm.formState.errors.full_name.message}</p>
-                )}
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="avatar_url">URL do avatar</Label>
+                <Label>E-mail</Label>
+                <Input
+                  value={userEmail}
+                  readOnly
+                  className="border-white/10 bg-white/5 text-zinc-400 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="cpf">CPF</Label>
+                <Controller
+                  control={profileForm.control}
+                  name="cpf"
+                  render={({ field }) => (
+                    <Input
+                      id="cpf"
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(applyCpfMask(e.target.value))}
+                      placeholder="000.000.000-00"
+                      className="border-white/10 bg-white/5 text-zinc-100 placeholder:text-zinc-500"
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="phone">Telefone</Label>
+                <Controller
+                  control={profileForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <Input
+                      id="phone"
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(applyPhoneMask(e.target.value))}
+                      placeholder="(00)00000-0000"
+                      className="border-white/10 bg-white/5 text-zinc-100 placeholder:text-zinc-500"
+                    />
+                  )}
+                />
+              </div>
+
+              {/* Avatar grid */}
+              <div className="space-y-2">
+                <Label>Avatar</Label>
+                <div className="grid grid-cols-10 gap-1.5">
+                  {AVATAR_PRESETS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() =>
+                        profileForm.setValue(
+                          "avatar_preset",
+                          selectedPreset === emoji ? null : emoji,
+                          { shouldDirty: true }
+                        )
+                      }
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg text-lg transition-all ${
+                        selectedPreset === emoji
+                          ? "border-2 border-emerald-400 bg-emerald-400/10"
+                          : "border border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="avatar_url">URL do avatar customizado (opcional)</Label>
                 <Input
                   id="avatar_url"
                   {...profileForm.register("avatar_url")}
@@ -157,17 +296,17 @@ export default function SettingsPage() {
                   {profileMutation.isPending ? "Salvando..." : "Salvar perfil"}
                 </Button>
                 {profileMutation.isSuccess && (
-                  <p className="text-sm text-emerald-400">Perfil atualizado com sucesso!</p>
+                  <p className="text-sm text-emerald-400">Perfil atualizado!</p>
                 )}
                 {profileMutation.isError && (
-                  <p className="text-sm text-red-400">Erro ao salvar. Tente novamente.</p>
+                  <p className="text-sm text-red-400">Erro ao salvar.</p>
                 )}
               </div>
             </form>
           )}
         </section>
 
-        {/* Hourly Rate Section */}
+        {/* Seção 2: Valor por Hora */}
         <section className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-5">
           <div>
             <h2 className="text-base font-semibold text-zinc-100">Valor por Hora</h2>
@@ -178,48 +317,153 @@ export default function SettingsPage() {
 
           {isLoading ? (
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-11 w-full rounded-xl" />
-              </div>
+              <Skeleton className="h-11 w-full rounded-xl" />
               <Skeleton className="h-11 w-36 rounded-xl" />
             </div>
           ) : (
             <form onSubmit={onHourlyRateSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label>Valor por hora (R$)</Label>
+              {/* Mode toggle */}
+              <div className="flex gap-2">
                 <Controller
                   control={hourlyRateForm.control}
-                  name="hourly_rate"
+                  name="mode"
                   render={({ field }) => (
-                    <MoneyInput
-                      value={field.value}
-                      onChange={(v) => field.onChange(v)}
-                      placeholder="R$ 0,00"
-                    />
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => field.onChange("manual")}
+                        className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                          field.value === "manual"
+                            ? "bg-emerald-500 text-white"
+                            : "border border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10"
+                        }`}
+                      >
+                        Manual
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => field.onChange("auto")}
+                        className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                          field.value === "auto"
+                            ? "bg-emerald-500 text-white"
+                            : "border border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10"
+                        }`}
+                      >
+                        Automático
+                      </button>
+                    </>
                   )}
                 />
-                {hourlyRateForm.formState.errors.hourly_rate && (
-                  <p className="text-xs text-red-400">{hourlyRateForm.formState.errors.hourly_rate.message}</p>
-                )}
-                <p className="text-xs text-zinc-500">
-                  Exemplo: se você ganha R$ 50/hora, insira R$ 50,00
-                </p>
               </div>
+
+              {watchMode === "manual" ? (
+                <div className="space-y-1.5">
+                  <Label>Valor por hora (R$)</Label>
+                  <Controller
+                    control={hourlyRateForm.control}
+                    name="hourly_rate"
+                    render={({ field }) => (
+                      <MoneyInput
+                        value={field.value}
+                        onChange={(v) => field.onChange(v)}
+                        placeholder="R$ 0,00"
+                      />
+                    )}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label>Salário mensal (R$)</Label>
+                    <Controller
+                      control={hourlyRateForm.control}
+                      name="salary_monthly"
+                      render={({ field }) => (
+                        <MoneyInput
+                          value={field.value}
+                          onChange={(v) => field.onChange(v)}
+                          placeholder="R$ 0,00"
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Horas por dia</Label>
+                      <Controller
+                        control={hourlyRateForm.control}
+                        name="work_hours_per_day"
+                        render={({ field }) => (
+                          <Input
+                            type="number"
+                            min={1}
+                            max={24}
+                            step={0.5}
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                            className="border-white/10 bg-white/5 text-zinc-100"
+                          />
+                        )}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Dias por semana</Label>
+                      <Controller
+                        control={hourlyRateForm.control}
+                        name="work_days_per_week"
+                        render={({ field }) => (
+                          <Input
+                            type="number"
+                            min={1}
+                            max={7}
+                            step={1}
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                            className="border-white/10 bg-white/5 text-zinc-100"
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                  {computedHourlyRate !== null && (
+                    <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
+                      <p className="text-sm text-zinc-400">Valor por hora calculado:</p>
+                      <p className="text-lg font-semibold text-emerald-400">
+                        R$ {computedHourlyRate.toFixed(2).replace(".", ",")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center gap-3">
                 <Button type="submit" disabled={hourlyRateMutation.isPending}>
                   {hourlyRateMutation.isPending ? "Salvando..." : "Salvar valor por hora"}
                 </Button>
                 {hourlyRateMutation.isSuccess && (
-                  <p className="text-sm text-emerald-400">Valor atualizado com sucesso!</p>
+                  <p className="text-sm text-emerald-400">Atualizado!</p>
                 )}
                 {hourlyRateMutation.isError && (
-                  <p className="text-sm text-red-400">Erro ao salvar. Tente novamente.</p>
+                  <p className="text-sm text-red-400">Erro ao salvar.</p>
                 )}
               </div>
             </form>
           )}
+        </section>
+
+        {/* Seção 3: Aparência */}
+        <section className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-5">
+          <div>
+            <h2 className="text-base font-semibold text-zinc-100">Aparência</h2>
+            <p className="mt-0.5 text-sm text-zinc-400">Personalize a aparência do aplicativo</p>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-200">Tema</p>
+              <p className="text-xs text-zinc-500">Alternar entre modo claro e escuro</p>
+            </div>
+            <ThemeToggle />
+          </div>
         </section>
       </div>
     </div>
