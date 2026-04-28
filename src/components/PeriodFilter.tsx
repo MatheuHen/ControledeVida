@@ -79,7 +79,7 @@ export function PeriodFilter({ value, customRange, onChange, className }: Period
             "rounded-xl px-4 py-2 text-sm font-medium transition-colors",
             value === opt.value
               ? "bg-emerald-500 text-white"
-              : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200",
+              : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
           )}
         >
           {opt.label}
@@ -93,7 +93,7 @@ export function PeriodFilter({ value, customRange, onChange, className }: Period
             "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors",
             value === "custom"
               ? "bg-emerald-500 text-white"
-              : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200",
+              : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
           )}
         >
           <CalendarIcon className="h-4 w-4" />
@@ -101,15 +101,15 @@ export function PeriodFilter({ value, customRange, onChange, className }: Period
         </button>
 
         {calendarOpen && (
-          <div className="absolute left-0 top-12 z-50 min-w-[280px] rounded-xl border border-white/10 bg-zinc-900 p-4 shadow-xl">
-            <p className="mb-3 text-xs font-medium text-zinc-400 uppercase tracking-wider">Período personalizado</p>
+          <div className="absolute left-0 top-12 z-50 min-w-[280px] rounded-xl border border-border bg-card p-4 shadow-xl">
+            <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Período personalizado</p>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs text-zinc-500">De</label>
+                <label className="mb-1 block text-xs text-muted-foreground">De</label>
                 <CalendarInput value={localFrom} onChange={(e) => setLocalFrom(e.target.value)} />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-zinc-500">Até</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Até</label>
                 <CalendarInput value={localTo} onChange={(e) => setLocalTo(e.target.value)} />
               </div>
             </div>

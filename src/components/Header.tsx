@@ -66,12 +66,19 @@ export function Header({
                 src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(profile.avatar_preset)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&backgroundType=circle`}
                 alt={displayName}
                 className="h-full w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
+                  if (fallback) fallback.removeAttribute("hidden");
+                }}
               />
-            ) : (
-              <span className="text-sm font-semibold">
-                {displayName.charAt(0).toUpperCase()}
-              </span>
-            )}
+            ) : null}
+            <span
+              className="text-sm font-semibold"
+              hidden={!!profile?.avatar_preset}
+            >
+              {displayName.charAt(0).toUpperCase()}
+            </span>
           </div>
         </div>
       </div>

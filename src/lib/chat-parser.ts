@@ -53,13 +53,14 @@ const QUERY_KEYWORDS = [
   "por que", "porque", "me mostra", "me diz", "me fala", "posso",
   "será", "sera", "me conta", "explica", "explique", "mostre",
   "está", "estão", "fica", "ficam",
+  "relatorio", "relatório", "resumo",
 ];
 
 const LIFE_COST_KEYWORDS = ["hora", "horas", "vida", "custar", "custaria", "vale", "equivale"];
 
 const SPENDING_QUERY_KEYWORDS = [
-  "gast", "despesa", "estou gastando", "gastando mais", "gastei mais",
-  "maior gasto", "maiores gastos", "categoria",
+  "estou gastando", "gastando mais", "gastei mais",
+  "maior gasto", "maiores gastos",
 ];
 
 const INVESTMENT_KEYWORDS = [
