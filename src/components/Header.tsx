@@ -59,10 +59,19 @@ export function Header({
               </>
             )}
           </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-accent-foreground">
-            <span className="text-sm font-semibold">
-              {displayName.charAt(0).toUpperCase()}
-            </span>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full overflow-hidden bg-accent text-accent-foreground ring-1 ring-border">
+            {profile?.avatar_preset ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(profile.avatar_preset)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&backgroundType=circle`}
+                alt={displayName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-sm font-semibold">
+                {displayName.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
         </div>
       </div>

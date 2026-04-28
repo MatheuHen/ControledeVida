@@ -17,11 +17,17 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { MoneyInput } from "@/components/ui/money-input"
 import { ThemeToggle } from "@/components/ThemeToggle"
 
-const AVATAR_PRESETS = [
-  "👨‍💼", "👩‍💼", "👨‍💻", "👩‍💻", "👨‍🎓", "👩‍🎓",
-  "👨‍🔬", "👩‍🔬", "👨‍🎨", "👩‍🎨", "👨‍⚕️", "👩‍⚕️",
-  "👨‍🍳", "👩‍🍳", "👨‍🚀", "👩‍🚀", "🦁", "🐱", "🐶", "🦊",
+// DiceBear avatar seeds — 20 varied, illustrated avatars
+const AVATAR_SEEDS = [
+  "Felix", "Aneka", "Milo", "Luna", "Leo",
+  "Maya", "Kai", "Nora", "Theo", "Zara",
+  "Ruby", "Oscar", "Ivy", "Max", "Ella",
+  "Sam", "Lily", "Jack", "Mia", "Noah",
 ]
+
+function avatarUrl(seed: string) {
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&backgroundType=circle`
+}
 
 function applyCpfMask(value: string) {
   return value
@@ -174,15 +180,15 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Configurações</h1>
         <p className="mt-1 text-sm text-muted-foreground">Gerencie suas informações pessoais</p>
       </div>
 
         {/* Seção 1: Perfil */}
-        <section className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-5">
+        <section className="rounded-xl border border-border bg-card p-6 space-y-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-100">Perfil</h2>
-            <p className="mt-0.5 text-sm text-zinc-400">Suas informações pessoais</p>
+            <h2 className="text-base font-semibold text-card-foreground">Perfil</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">Suas informações pessoais</p>
           </div>
 
           {isLoading ? (
@@ -203,7 +209,6 @@ export default function SettingsPage() {
                   id="full_name"
                   {...profileForm.register("full_name")}
                   placeholder="Seu nome completo"
-                  className="border-white/10 bg-white/5 text-zinc-100 placeholder:text-zinc-500"
                 />
               </div>
 
@@ -212,7 +217,7 @@ export default function SettingsPage() {
                 <Input
                   value={userEmail}
                   readOnly
-                  className="border-white/10 bg-white/5 text-zinc-400 cursor-not-allowed"
+                  className="cursor-not-allowed opacity-60"
                 />
               </div>
 
@@ -227,7 +232,6 @@ export default function SettingsPage() {
                       value={field.value ?? ""}
                       onChange={(e) => field.onChange(applyCpfMask(e.target.value))}
                       placeholder="000.000.000-00"
-                      className="border-white/10 bg-white/5 text-zinc-100 placeholder:text-zinc-500"
                     />
                   )}
                 />
@@ -244,37 +248,48 @@ export default function SettingsPage() {
                       value={field.value ?? ""}
                       onChange={(e) => field.onChange(applyPhoneMask(e.target.value))}
                       placeholder="(00)00000-0000"
-                      className="border-white/10 bg-white/5 text-zinc-100 placeholder:text-zinc-500"
                     />
                   )}
                 />
               </div>
 
-              {/* Avatar grid */}
+              {/* Avatar grid — DiceBear illustrated avatars */}
               <div className="space-y-2">
                 <Label>Avatar</Label>
-                <div className="grid grid-cols-10 gap-1.5">
-                  {AVATAR_PRESETS.map((emoji) => (
+                <div className="grid grid-cols-10 gap-2">
+                  {AVATAR_SEEDS.map((seed) => (
                     <button
-                      key={emoji}
+                      key={seed}
                       type="button"
+                      title={seed}
                       onClick={() =>
                         profileForm.setValue(
                           "avatar_preset",
-                          selectedPreset === emoji ? null : emoji,
+                          selectedPreset === seed ? null : seed,
                           { shouldDirty: true }
                         )
                       }
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg text-lg transition-all ${
-                        selectedPreset === emoji
-                          ? "border-2 border-emerald-400 bg-emerald-400/10"
-                          : "border border-white/10 bg-white/5 hover:bg-white/10"
+                      className={`relative flex h-10 w-10 items-center justify-center rounded-full overflow-hidden transition-all ${
+                        selectedPreset === seed
+                          ? "ring-2 ring-emerald-500 ring-offset-2 ring-offset-card"
+                          : "ring-1 ring-border hover:ring-emerald-400"
                       }`}
                     >
-                      {emoji}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={avatarUrl(seed)}
+                        alt={seed}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
                     </button>
                   ))}
                 </div>
+                {selectedPreset && (
+                  <p className="text-xs text-muted-foreground">
+                    Avatar selecionado: <span className="font-medium text-foreground">{selectedPreset}</span>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -283,10 +298,9 @@ export default function SettingsPage() {
                   id="avatar_url"
                   {...profileForm.register("avatar_url")}
                   placeholder="https://exemplo.com/foto.jpg"
-                  className="border-white/10 bg-white/5 text-zinc-100 placeholder:text-zinc-500"
                 />
                 {profileForm.formState.errors.avatar_url && (
-                  <p className="text-xs text-red-400">{profileForm.formState.errors.avatar_url.message}</p>
+                  <p className="text-xs text-destructive">{profileForm.formState.errors.avatar_url.message}</p>
                 )}
               </div>
 
@@ -295,10 +309,10 @@ export default function SettingsPage() {
                   {profileMutation.isPending ? "Salvando..." : "Salvar perfil"}
                 </Button>
                 {profileMutation.isSuccess && (
-                  <p className="text-sm text-emerald-400">Perfil atualizado!</p>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400">Perfil atualizado!</p>
                 )}
                 {profileMutation.isError && (
-                  <p className="text-sm text-red-400">Erro ao salvar.</p>
+                  <p className="text-sm text-destructive">Erro ao salvar.</p>
                 )}
               </div>
             </form>
@@ -306,10 +320,10 @@ export default function SettingsPage() {
         </section>
 
         {/* Seção 2: Valor por Hora */}
-        <section className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-5">
+        <section className="rounded-xl border border-border bg-card p-6 space-y-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-100">Valor por Hora</h2>
-            <p className="mt-0.5 text-sm text-zinc-400">
+            <h2 className="text-base font-semibold text-card-foreground">Valor por Hora</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
               Usado para calcular quantas horas de vida você gasta com seus gastos
             </p>
           </div>
@@ -334,7 +348,7 @@ export default function SettingsPage() {
                         className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                           field.value === "manual"
                             ? "bg-emerald-500 text-white"
-                            : "border border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10"
+                            : "border border-border bg-muted text-muted-foreground hover:bg-muted/80"
                         }`}
                       >
                         Manual
@@ -345,7 +359,7 @@ export default function SettingsPage() {
                         className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                           field.value === "auto"
                             ? "bg-emerald-500 text-white"
-                            : "border border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10"
+                            : "border border-border bg-muted text-muted-foreground hover:bg-muted/80"
                         }`}
                       >
                         Automático
@@ -400,7 +414,6 @@ export default function SettingsPage() {
                             step={0.5}
                             value={field.value ?? ""}
                             onChange={(e) => field.onChange(Number(e.target.value) || null)}
-                            className="border-white/10 bg-white/5 text-zinc-100"
                           />
                         )}
                       />
@@ -418,7 +431,6 @@ export default function SettingsPage() {
                             step={1}
                             value={field.value ?? ""}
                             onChange={(e) => field.onChange(Number(e.target.value) || null)}
-                            className="border-white/10 bg-white/5 text-zinc-100"
                           />
                         )}
                       />
@@ -426,8 +438,8 @@ export default function SettingsPage() {
                   </div>
                   {computedHourlyRate !== null && (
                     <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
-                      <p className="text-sm text-zinc-400">Valor por hora calculado:</p>
-                      <p className="text-lg font-semibold text-emerald-400">
+                      <p className="text-sm text-muted-foreground">Valor por hora calculado:</p>
+                      <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
                         R$ {computedHourlyRate.toFixed(2).replace(".", ",")}
                       </p>
                     </div>
@@ -440,10 +452,10 @@ export default function SettingsPage() {
                   {hourlyRateMutation.isPending ? "Salvando..." : "Salvar valor por hora"}
                 </Button>
                 {hourlyRateMutation.isSuccess && (
-                  <p className="text-sm text-emerald-400">Atualizado!</p>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400">Atualizado!</p>
                 )}
                 {hourlyRateMutation.isError && (
-                  <p className="text-sm text-red-400">Erro ao salvar.</p>
+                  <p className="text-sm text-destructive">Erro ao salvar.</p>
                 )}
               </div>
             </form>
@@ -451,15 +463,15 @@ export default function SettingsPage() {
         </section>
 
         {/* Seção 3: Aparência */}
-        <section className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-5">
+        <section className="rounded-xl border border-border bg-card p-6 space-y-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-100">Aparência</h2>
-            <p className="mt-0.5 text-sm text-zinc-400">Personalize a aparência do aplicativo</p>
+            <h2 className="text-base font-semibold text-card-foreground">Aparência</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">Personalize a aparência do aplicativo</p>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-200">Tema</p>
-              <p className="text-xs text-zinc-500">Alternar entre modo claro e escuro</p>
+              <p className="text-sm font-medium text-foreground">Tema</p>
+              <p className="text-xs text-muted-foreground">Alternar entre modo claro e escuro</p>
             </div>
             <ThemeToggle />
           </div>

@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Send, Loader2, X } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { cn, formatCurrency } from "@/lib/utils";
 import { parseCommand } from "@/lib/chat-parser";
 import { getInsights } from "@/agents/agent-orchestrator";
@@ -26,7 +24,7 @@ import { getDateRange } from "@/lib/period";
 import { format as dateFnsFormat } from "date-fns";
 import type { ParsedCommand } from "@/lib/chat-parser";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export function ChatWindow() {
   const {
@@ -83,60 +81,130 @@ export function ChatWindow() {
     const parsed = parseCommand(text, categories);
     sendMessage(text, parsed);
 
-    // If it's a query, resolve immediately
-    if (
+    // ── Query intents: respond with text, never create a record ──
+    const isQueryIntent =
       parsed.intent === "query_finances" ||
       parsed.intent === "query_investments" ||
-      parsed.intent === "query_general"
-    ) {
-      setIsProcessing(true);
-      await new Promise((r) => setTimeout(r, 400));
+      parsed.intent === "query_life_cost" ||
+      parsed.intent === "query_spending" ||
+      parsed.intent === "query_general";
 
-      if (parsed.intent === "query_finances" && summary) {
-        const lines = [
-          `Resumo do mês atual:`,
-          `• Receitas: ${formatCurrency(summary.totalIncome)}`,
-          `• Despesas: ${formatCurrency(summary.totalExpenses)}`,
-          `• Saldo: ${formatCurrency(summary.balance)}`,
-        ];
-        addSystemMessage(lines.join("\n"));
-      } else if (parsed.intent === "query_investments") {
-        const total = investmentEntries.reduce((s, e) => s + e.value, 0);
-        const current = investmentEntries.reduce((s, e) => s + (e.current_value ?? e.value), 0);
-        const pl = current - total;
-        addSystemMessage(
-          investmentEntries.length === 0
-            ? "Você não tem investimentos registrados ainda."
-            : `Seus investimentos:\n• Investido: ${formatCurrency(total)}\n• Valor atual: ${formatCurrency(current)}\n• Resultado: ${pl >= 0 ? "+" : ""}${formatCurrency(pl)}`,
-        );
-      } else {
-        // query_general — use agent orchestrator
-        const agentCtx = {
-          userId,
-          viewingMode: "own" as const,
-          permissions: ["finances", "investments", "goals"],
-          period: range,
-          transactions,
-          categories,
-          goals,
-          reserveEntries,
-          investmentEntries,
-          profile: profile ?? null,
-          financialSummary: {
-            totalIncome: summary?.totalIncome ?? 0,
-            totalExpenses: summary?.totalExpenses ?? 0,
-            balance: summary?.balance ?? 0,
-          },
-        };
-        const insights = getInsights(agentCtx, 3);
-        if (insights.length > 0) {
-          addSystemMessage(
-            insights
-              .map((i) => `${i.title}: ${i.message}`)
-              .join("\n\n"),
+    if (isQueryIntent) {
+      setIsProcessing(true);
+      await new Promise((r) => setTimeout(r, 350));
+
+      switch (parsed.intent) {
+        case "query_finances": {
+          if (summary) {
+            addSystemMessage(
+              [
+                `Resumo do mês atual:`,
+                `• Receitas: ${formatCurrency(summary.totalIncome)}`,
+                `• Despesas: ${formatCurrency(summary.totalExpenses)}`,
+                `• Saldo: ${formatCurrency(summary.balance)}`,
+              ].join("\n"),
+            );
+          } else {
+            addSystemMessage("Sem dados financeiros disponíveis para o mês atual.");
+          }
+          break;
+        }
+
+        case "query_investments": {
+          const total = investmentEntries.reduce((s, e) => s + e.value, 0);
+          const current = investmentEntries.reduce(
+            (s, e) => s + (e.current_value ?? e.value),
+            0,
           );
-        } else {
-          addSystemMessage("Não encontrei informações específicas para essa consulta. Tente perguntar sobre gastos, investimentos ou saldo.");
+          const pl = current - total;
+          addSystemMessage(
+            investmentEntries.length === 0
+              ? "Você não tem investimentos registrados ainda."
+              : `Seus investimentos:\n• Investido: ${formatCurrency(total)}\n• Valor atual: ${formatCurrency(current)}\n• Resultado: ${pl >= 0 ? "+" : ""}${formatCurrency(pl)}`,
+          );
+          break;
+        }
+
+        case "query_life_cost": {
+          const value = parsed.data.value as number | null;
+          const hourlyRate = profile?.hourly_rate ?? null;
+          if (!value) {
+            addSystemMessage(
+              'Não identifiquei o valor. Tente: "quantas horas de vida custa um item de R$ 100"',
+            );
+          } else if (!hourlyRate) {
+            addSystemMessage(
+              `Para calcular horas de vida, configure seu valor por hora em Configurações → Valor por Hora.`,
+            );
+          } else {
+            const hours = value / hourlyRate;
+            const days = hours / 8;
+            addSystemMessage(
+              `Um item de ${formatCurrency(value)} custa ${hours.toFixed(1)} horas da sua vida` +
+                (days >= 1 ? ` (${days.toFixed(1)} dias de trabalho)` : "") +
+                `.\n\nSeu valor/hora atual: ${formatCurrency(hourlyRate)}/h`,
+            );
+          }
+          break;
+        }
+
+        case "query_spending": {
+          const byCategory: Record<string, number> = {};
+          for (const tx of transactions) {
+            if (tx.type === "expense") {
+              const catName =
+                categories.find((c) => c.id === tx.category_id)?.name ??
+                "Sem categoria";
+              byCategory[catName] = (byCategory[catName] ?? 0) + tx.amount;
+            }
+          }
+          const sorted = Object.entries(byCategory)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+          if (sorted.length === 0) {
+            addSystemMessage("Sem despesas registradas neste mês.");
+          } else {
+            const lines = [
+              "Seus maiores gastos neste mês:",
+              ...sorted.map(
+                ([cat, val], i) => `${i + 1}. ${cat}: ${formatCurrency(val)}`,
+              ),
+            ];
+            addSystemMessage(lines.join("\n"));
+          }
+          break;
+        }
+
+        case "query_general":
+        default: {
+          const agentCtx = {
+            userId,
+            viewingMode: "own" as const,
+            permissions: ["finances", "investments", "goals"],
+            period: range,
+            transactions,
+            categories,
+            goals,
+            reserveEntries,
+            investmentEntries,
+            profile: profile ?? null,
+            financialSummary: {
+              totalIncome: summary?.totalIncome ?? 0,
+              totalExpenses: summary?.totalExpenses ?? 0,
+              balance: summary?.balance ?? 0,
+            },
+          };
+          const insights = getInsights(agentCtx, 3);
+          if (insights.length > 0) {
+            addSystemMessage(
+              insights.map((i) => `${i.title}: ${i.message}`).join("\n\n"),
+            );
+          } else {
+            addSystemMessage(
+              "Não encontrei informações específicas. Tente perguntar sobre gastos, investimentos ou saldo.",
+            );
+          }
+          break;
         }
       }
 
@@ -144,10 +212,18 @@ export function ChatWindow() {
       return;
     }
 
+    // ── Action intents: show preview for confirmation ──
     if (parsed.intent !== "unknown") {
       setPendingAction(parsed);
     } else {
-      addSystemMessage("Não entendi o comando. Tente algo como:\n• \"Gastei R$ 50 no mercado\"\n• \"Cria categoria Alimentação\"\n• \"Meta de R$ 1000\"\n• \"Quanto gastei esse mês?\"");
+      addSystemMessage(
+        "Não entendi o comando. Tente algo como:\n" +
+          '• "Gastei R$ 50 no mercado"\n' +
+          '• "Investimento 500 em Tesouro Direto"\n' +
+          '• "Reserva 200"\n' +
+          '• "Quanto gastei esse mês?"\n' +
+          '• "Quantas horas de vida custa um item de R$ 100?"',
+      );
     }
   }
 
@@ -219,7 +295,7 @@ export function ChatWindow() {
             amount: action.data.amount as number,
             type: (action.data.type as "deposit" | "withdrawal") ?? "deposit",
             description: "Lançamento via chat",
-            date: today,
+            date: (action.data.date as string) ?? today,
           });
           addSystemMessage(
             `${action.data.type === "withdrawal" ? "Retirada" : "Depósito"} de ${formatCurrency(action.data.amount as number)} na reserva registrado!`,
@@ -233,7 +309,7 @@ export function ChatWindow() {
             current_value: action.data.value as number,
             category: action.data.category as string,
             description: "Lançamento via chat",
-            date: today,
+            date: (action.data.date as string) ?? today,
           });
           addSystemMessage(
             `Investimento de ${formatCurrency(action.data.value as number)} em "${action.data.category}" registrado!`,
@@ -279,10 +355,10 @@ export function ChatWindow() {
           <div className="text-center text-xs text-zinc-500 mt-4">
             <p className="mb-2 font-medium text-zinc-400">Como posso ajudar?</p>
             <p>• &quot;Gastei R$ 50 no mercado&quot;</p>
-            <p>• &quot;Recebi R$ 3000 de salário&quot;</p>
-            <p>• &quot;Investi R$ 500 em Tesouro Direto&quot;</p>
-            <p>• &quot;Meta de R$ 2000 para viagem&quot;</p>
+            <p>• &quot;Investimento 500 em Tesouro Direto&quot;</p>
+            <p>• &quot;Reserva 200&quot;</p>
             <p>• &quot;Quanto gastei esse mês?&quot;</p>
+            <p>• &quot;Quantas horas de vida custa R$ 100?&quot;</p>
           </div>
         )}
         {messages.map((msg) => (
