@@ -123,12 +123,12 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-zinc-100">Categorias</h1>
-            <p className="mt-1 text-sm text-zinc-400">Organize suas transações por categoria</p>
+            <h1 className="text-3xl font-bold tracking-tight">Categorias</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Organize suas transações por categoria</p>
           </div>
           <Button onClick={() => setOpenCreate(true)}>
             <Plus className="mr-2 h-4 w-4" />

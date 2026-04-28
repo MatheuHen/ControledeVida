@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { format as dateFnsFormat } from "date-fns";
 import {
   TrendingUp,
@@ -89,29 +90,39 @@ function SummaryCard({
   icon: Icon,
   color,
   isLoading,
+  index = 0,
 }: {
   title: string;
   value: number;
   icon: React.ElementType;
   color: string;
   isLoading: boolean;
+  index?: number;
 }) {
   return (
-    <Card className="border-white/10 bg-white/5">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">{title}</p>
-            {isLoading ? (
-              <Skeleton className="mt-2 h-7 w-32" />
-            ) : (
-              <p className={cn("mt-1 text-2xl font-bold", color)}>{formatCurrency(value)}</p>
-            )}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06, duration: 0.35, ease: "easeOut" }}
+    >
+      <Card className="border-white/10 bg-white/5 hover:bg-white/[0.08] transition-all duration-200">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">{title}</p>
+              {isLoading ? (
+                <Skeleton className="mt-2 h-7 w-32" />
+              ) : (
+                <p className={cn("mt-1 text-2xl font-bold", color)}>{formatCurrency(value)}</p>
+              )}
+            </div>
+            <div className={cn("rounded-xl p-2 bg-white/5", color)}>
+              <Icon className="h-5 w-5" />
+            </div>
           </div>
-          <Icon className={cn("h-5 w-5", color)} />
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
@@ -265,10 +276,10 @@ export default function DashboardPage() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard title="Receitas" value={totalIncome} icon={TrendingUp} color="text-emerald-400" isLoading={isSummaryLoading} />
-        <SummaryCard title="Despesas" value={totalExpenses} icon={TrendingDown} color="text-red-400" isLoading={isSummaryLoading} />
-        <SummaryCard title="Saldo" value={balance} icon={DollarSign} color={balance >= 0 ? "text-emerald-400" : "text-red-400"} isLoading={isSummaryLoading} />
-        <SummaryCard title="Economia" value={savings} icon={PiggyBank} color={savings >= 0 ? "text-blue-400" : "text-red-400"} isLoading={isSummaryLoading} />
+        <SummaryCard title="Receitas" value={totalIncome} icon={TrendingUp} color="text-emerald-400" isLoading={isSummaryLoading} index={0} />
+        <SummaryCard title="Despesas" value={totalExpenses} icon={TrendingDown} color="text-red-400" isLoading={isSummaryLoading} index={1} />
+        <SummaryCard title="Saldo" value={balance} icon={DollarSign} color={balance >= 0 ? "text-emerald-400" : "text-red-400"} isLoading={isSummaryLoading} index={2} />
+        <SummaryCard title="Economia" value={savings} icon={PiggyBank} color={savings >= 0 ? "text-blue-400" : "text-red-400"} isLoading={isSummaryLoading} index={3} />
       </div>
 
       {/* Charts Row */}

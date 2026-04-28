@@ -26,6 +26,8 @@ import { getDateRange } from "@/lib/period";
 import { format as dateFnsFormat } from "date-fns";
 import type { ParsedCommand } from "@/lib/chat-parser";
 
+import { motion, AnimatePresence } from "framer-motion";
+
 export function ChatWindow() {
   const {
     messages,
@@ -249,8 +251,12 @@ export function ChatWindow() {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed bottom-24 right-6 z-50 flex h-[500px] w-[380px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl"
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 16, scale: 0.96 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="fixed bottom-24 right-6 z-50 flex h-[500px] w-[380px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl"
       style={{ maxHeight: "80vh" }}
     >
       {/* Header */}
@@ -323,6 +329,6 @@ export function ChatWindow() {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

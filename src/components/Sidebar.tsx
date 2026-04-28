@@ -15,6 +15,7 @@ import {
 import { useLogout } from "@/hooks/useLogout";
 import { useActiveUser } from "@/hooks/useActiveUser";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 // Map route href -> canView flag key
 const routePermissionMap: Record<string, keyof ReturnType<typeof useActiveUser> | null> = {
@@ -65,24 +66,30 @@ function SidebarContent({
 
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-1.5">
-          {visibleRoutes.map((route) => {
+          {visibleRoutes.map((route, i) => {
             const isActive = pathname === route.href;
             const Icon = route.icon;
 
             return (
-              <Link
+              <motion.div
                 key={route.href}
-                href={route.href}
-                onClick={onNavigate}
-                className={cn(
-                  "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-sidebar-muted hover:bg-white/8 hover:text-sidebar-foreground",
-                  isActive &&
-                    "bg-emerald-400/14 text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(52,211,153,0.18)]",
-                )}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.03, duration: 0.2 }}
               >
-                <Icon className="h-4 w-4" />
-                <span>{route.title}</span>
-              </Link>
+                <Link
+                  href={route.href}
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-sidebar-muted hover:bg-white/8 hover:text-sidebar-foreground transition-all duration-200 hover:scale-[1.01]",
+                    isActive &&
+                      "bg-emerald-400/14 text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(52,211,153,0.18)]",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{route.title}</span>
+                </Link>
+              </motion.div>
             );
           })}
         </nav>

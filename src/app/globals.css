@@ -1,49 +1,146 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────
+   LIGHT MODE  (default)
+───────────────────────────────────────────── */
 :root {
-  --background: #f4f7f5;
+  /* surface / background */
+  --background: #f0f4f8;
   --foreground: #0f172a;
-  --muted-foreground: #475569;
-  --border: rgba(15, 23, 42, 0.08);
+
+  /* cards / panels */
+  --card: rgba(255, 255, 255, 0.85);
+  --card-foreground: #0f172a;
   --panel: rgba(255, 255, 255, 0.78);
-  --panel-hover: rgba(255, 255, 255, 0.92);
+  --panel-hover: rgba(255, 255, 255, 0.95);
+
+  /* primary accent – emerald */
+  --primary: #10b981;
+  --primary-foreground: #052e16;
+
+  /* secondary – slate */
+  --secondary: #f1f5f9;
+  --secondary-foreground: #334155;
+
+  /* muted */
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  /* accent */
+  --accent: #10b981;
+  --accent-foreground: #052e16;
+
+  /* destructive */
+  --destructive: #ef4444;
+  --destructive-foreground: #fff;
+
+  /* borders / inputs / rings */
+  --border: rgba(15, 23, 42, 0.1);
+  --input: rgba(15, 23, 42, 0.06);
+  --ring: rgba(16, 185, 129, 0.35);
+
+  /* sidebar */
   --sidebar: #06131f;
   --sidebar-foreground: #f8fafc;
   --sidebar-muted: #94a3b8;
-  --accent: #10b981;
-  --accent-foreground: #052e16;
+
+  /* radius */
+  --radius: 0.75rem;
+
+  /* shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
 }
 
+/* ─────────────────────────────────────────────
+   DARK MODE
+───────────────────────────────────────────── */
 .dark {
   --background: #020617;
   --foreground: #f8fafc;
-  --muted-foreground: #94a3b8;
-  --border: rgba(255, 255, 255, 0.08);
+
+  --card: rgba(15, 23, 42, 0.72);
+  --card-foreground: #f8fafc;
   --panel: rgba(15, 23, 42, 0.72);
-  --panel-hover: rgba(15, 23, 42, 0.9);
+  --panel-hover: rgba(15, 23, 42, 0.92);
+
+  --primary: #34d399;
+  --primary-foreground: #022c22;
+
+  --secondary: rgba(255,255,255,0.06);
+  --secondary-foreground: #cbd5e1;
+
+  --muted: rgba(255,255,255,0.05);
+  --muted-foreground: #94a3b8;
+
+  --accent: #34d399;
+  --accent-foreground: #022c22;
+
+  --destructive: #f87171;
+  --destructive-foreground: #fff;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.06);
+  --ring: rgba(52, 211, 153, 0.35);
+
   --sidebar: #020617;
   --sidebar-foreground: #f8fafc;
   --sidebar-muted: #94a3b8;
-  --accent: #34d399;
-  --accent-foreground: #022c22;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.6);
 }
 
+/* ─────────────────────────────────────────────
+   TAILWIND THEME MAPPING
+───────────────────────────────────────────── */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   --color-panel: var(--panel);
   --color-panel-hover: var(--panel-hover);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-muted: var(--sidebar-muted);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 16px);
 }
 
+/* ─────────────────────────────────────────────
+   BASE STYLES
+───────────────────────────────────────────── */
 * {
   box-sizing: border-box;
 }
@@ -63,18 +160,69 @@ html:not(.dark) {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(16, 185, 129, 0.12), transparent 28%),
+    radial-gradient(ellipse at top, rgba(16, 185, 129, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(99, 102, 241, 0.06) 0%, transparent 40%),
     var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans, Arial, Helvetica, sans-serif);
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ─────────────────────────────────────────────
+   TRANSITIONS
+───────────────────────────────────────────── */
 button,
 a {
   transition:
     color 0.2s ease,
     background-color 0.2s ease,
     border-color 0.2s ease,
-    transform 0.2s ease,
-    opacity 0.2s ease;
+    transform 0.15s ease,
+    opacity 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* ─────────────────────────────────────────────
+   SCROLLBAR  (dark/light)
+───────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ─────────────────────────────────────────────
+   FINTECH UTILITY CLASSES
+───────────────────────────────────────────── */
+
+/* Glass card – used for content panels */
+.glass-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+/* Subtle gradient text for big monetary values */
+.value-positive {
+  color: #10b981;
+}
+.dark .value-positive {
+  color: #34d399;
+}
+.value-negative {
+  color: #ef4444;
+}
+.dark .value-negative {
+  color: #f87171;
 }

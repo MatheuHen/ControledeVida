@@ -118,13 +118,13 @@ export default function AnalyticsPage() {
     .slice(0, 5)
 
   return (
-    <div className="min-h-screen bg-zinc-900 p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
+      <div className="space-y-6">
         {/* Header + Period */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-zinc-100">Analytics</h1>
-            <p className="mt-1 text-sm text-zinc-400">Análise detalhada das suas finanças</p>
+            <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Análise detalhada das suas finanças</p>
           </div>
           <div className="flex gap-1">
             {periodPresets.map((p) => (

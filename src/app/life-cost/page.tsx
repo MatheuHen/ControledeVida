@@ -71,25 +71,22 @@ export default function LifeCostPage() {
 
   if (profileLoading) {
     return (
-      <div className="min-h-screen bg-zinc-900 p-6">
-        <div className="mx-auto max-w-4xl space-y-6">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-32 w-full rounded-xl" />
-        </div>
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-32 w-full rounded-xl" />
       </div>
     )
   }
 
   if (!hourlyRate) {
     return (
-      <div className="min-h-screen bg-zinc-900 p-6">
-        <div className="mx-auto max-w-4xl space-y-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-zinc-100">Custo de Vida</h1>
-            <p className="mt-1 text-sm text-zinc-400">Descubra quanto da sua vida você gasta</p>
-          </div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Custo de Vida</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Descubra quanto da sua vida você gasta</p>
+        </div>
 
-          <div className="flex items-start gap-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-5">
+        <div className="flex items-start gap-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-5">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-400" />
             <div>
               <p className="font-medium text-yellow-300">Configure seu valor por hora</p>
@@ -103,19 +100,18 @@ export default function LifeCostPage() {
               </Link>
             </div>
           </div>
-        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 p-6">
+    <div className="space-y-6">
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Header + Period */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-zinc-100">Custo de Vida</h1>
-            <p className="mt-1 text-sm text-zinc-400">
+            <h1 className="text-3xl font-bold tracking-tight">Custo de Vida</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Baseado em {formatCurrency(hourlyRate)}/hora
             </p>
           </div>

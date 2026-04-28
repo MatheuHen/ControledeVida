@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -44,7 +45,12 @@ export default function LoginPage() {
   };
 
   return (
-    <Card className="overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
+    <Card className="overflow-hidden border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
       <CardHeader>
         <div className="inline-flex w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
           Acesse sua conta
@@ -107,5 +113,6 @@ export default function LoginPage() {
         </form>
       </CardContent>
     </Card>
+    </motion.div>
   );
 }

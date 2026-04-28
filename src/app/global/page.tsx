@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { motion } from "framer-motion";
 import { format as dateFnsFormat } from "date-fns";
 import {
   TrendingUp,
@@ -73,6 +74,7 @@ function StatCard({
   icon: Icon,
   color,
   isLoading,
+  index = 0,
 }: {
   title: string;
   value: string;
@@ -80,26 +82,35 @@ function StatCard({
   icon: React.ElementType;
   color: string;
   isLoading: boolean;
+  index?: number;
 }) {
   return (
-    <Card className="border-white/10 bg-white/5">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">{title}</p>
-            {isLoading ? (
-              <Skeleton className="mt-2 h-7 w-32" />
-            ) : (
-              <p className={cn("mt-1 text-2xl font-bold truncate", color)}>{value}</p>
-            )}
-            {sub && !isLoading && (
-              <p className="mt-0.5 text-xs text-zinc-500">{sub}</p>
-            )}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06, duration: 0.35, ease: "easeOut" }}
+    >
+      <Card className="border-white/10 bg-white/5 hover:bg-white/[0.08] transition-all duration-200">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">{title}</p>
+              {isLoading ? (
+                <Skeleton className="mt-2 h-7 w-32" />
+              ) : (
+                <p className={cn("mt-1 text-2xl font-bold truncate", color)}>{value}</p>
+              )}
+              {sub && !isLoading && (
+                <p className="mt-0.5 text-xs text-zinc-500">{sub}</p>
+              )}
+            </div>
+            <div className={cn("ml-3 mt-0.5 rounded-xl p-2 bg-white/5 shrink-0", color)}>
+              <Icon className="h-5 w-5" />
+            </div>
           </div>
-          <Icon className={cn("ml-3 mt-0.5 h-5 w-5 shrink-0", color)} />
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
@@ -257,8 +268,8 @@ export default function GlobalPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-zinc-100">Visão Global</h1>
-        <p className="text-sm text-zinc-400">Resumo centralizado do seu patrimônio</p>
+        <h1 className="text-3xl font-bold tracking-tight">Visão Global</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Resumo centralizado do seu patrimônio</p>
       </div>
 
       {/* Main Stat Cards */}
@@ -270,6 +281,7 @@ export default function GlobalPage() {
           icon={Shield}
           color="text-violet-400"
           isLoading={isLoading}
+          index={0}
         />
         <StatCard
           title="Reserva de Emergência"
@@ -282,6 +294,7 @@ export default function GlobalPage() {
           icon={PiggyBank}
           color="text-blue-400"
           isLoading={isLoading}
+          index={1}
         />
         <StatCard
           title="Investimentos"
@@ -294,6 +307,7 @@ export default function GlobalPage() {
           icon={BarChart2}
           color={investmentPL >= 0 ? "text-emerald-400" : "text-red-400"}
           isLoading={isLoading}
+          index={2}
         />
         <StatCard
           title="Economia do Mês"
@@ -306,6 +320,7 @@ export default function GlobalPage() {
           icon={monthlyBalance >= 0 ? TrendingUp : TrendingDown}
           color={monthlyBalance >= 0 ? "text-emerald-400" : "text-red-400"}
           isLoading={isLoading}
+          index={3}
         />
         <StatCard
           title="Receitas do Mês"
@@ -313,6 +328,7 @@ export default function GlobalPage() {
           icon={TrendingUp}
           color="text-emerald-400"
           isLoading={isLoading}
+          index={4}
         />
         <StatCard
           title="Despesas do Mês"
@@ -325,6 +341,7 @@ export default function GlobalPage() {
           icon={hoursConsumed !== null ? Clock : TrendingDown}
           color="text-red-400"
           isLoading={isLoading}
+          index={5}
         />
       </div>
 

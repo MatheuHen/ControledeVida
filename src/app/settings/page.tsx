@@ -172,12 +172,11 @@ export default function SettingsPage() {
   const selectedPreset = profileForm.watch("avatar_preset")
 
   return (
-    <div className="min-h-screen bg-zinc-900 p-6">
-      <div className="mx-auto max-w-2xl space-y-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-100">Configurações</h1>
-          <p className="mt-1 text-sm text-zinc-400">Gerencie suas informações pessoais</p>
-        </div>
+    <div className="mx-auto max-w-2xl space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Gerencie suas informações pessoais</p>
+      </div>
 
         {/* Seção 1: Perfil */}
         <section className="rounded-xl border border-white/10 bg-white/5 p-6 space-y-5">
@@ -465,7 +464,6 @@ export default function SettingsPage() {
             <ThemeToggle />
           </div>
         </section>
-      </div>
     </div>
   )
 }

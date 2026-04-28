@@ -144,13 +144,13 @@ export default function InvestmentsPage() {
   }))
 
   return (
-    <div className="min-h-screen bg-zinc-900 p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-zinc-100">Investimentos</h1>
-            <p className="mt-1 text-sm text-zinc-400">Gerencie sua carteira de investimentos</p>
+            <h1 className="text-3xl font-bold tracking-tight">Investimentos</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Gerencie sua carteira de investimentos</p>
           </div>
           <Button onClick={() => setOpenCreate(true)}>
             <Plus className="mr-2 h-4 w-4" />
