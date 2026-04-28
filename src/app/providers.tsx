@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ActiveUserProvider } from "@/hooks/useActiveUser";
+import { ChatProvider } from "@/components/Chat/ChatProvider";
+import { ChatWindow } from "@/components/Chat/ChatWindow";
+import { ChatButton } from "@/components/Chat/ChatButton";
 import { getSession, onAuthStateChange } from "@/services/auth.service";
 import { sessionQueryKey } from "@/hooks/useSession";
 
@@ -57,7 +60,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <ActiveUserProvider>
-          <AppShell>{children}</AppShell>
+          <ChatProvider>
+            <AppShell>{children}</AppShell>
+            <ChatWindow />
+            <ChatButton />
+          </ChatProvider>
         </ActiveUserProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -7,10 +7,9 @@ import {
   TrendingDown,
   DollarSign,
   PiggyBank,
-  Clock,
   AlertTriangle,
   AlertCircle,
-  Scale,
+  CheckCircle2,
   Info,
   Send,
   Zap,
@@ -29,9 +28,14 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useUpcomingTransactions } from "@/hooks/useUpcomingTransactions";
 import { useCategories } from "@/hooks/useCategories";
 import { useProfile } from "@/hooks/useProfile";
+import { useGoals } from "@/hooks/useGoals";
+import { useReserveEntries } from "@/hooks/useReserveEntries";
+import { useInvestmentEntries } from "@/hooks/useInvestmentEntries";
 import { getDateRange, type PeriodPreset } from "@/lib/period";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
-import { generateInsights, type Insight } from "@/lib/financial-insights";
+import { generateInsights } from "@/lib/financial-insights";
+import { getInsights } from "@/agents/agent-orchestrator";
+import type { AgentInsight } from "@/agents/agent-types";
 import { parseTransaction } from "@/lib/natural-transaction-parser";
 
 const PERIOD_OPTIONS: { label: string; value: Exclude<PeriodPreset, "custom"> }[] = [
@@ -43,13 +47,10 @@ const PERIOD_OPTIONS: { label: string; value: Exclude<PeriodPreset, "custom"> }[
 ];
 
 const INSIGHT_ICONS: Record<string, React.ElementType> = {
-  TrendingDown,
-  Scale,
-  PiggyBank,
-  AlertCircle,
-  Clock,
-  AlertTriangle,
-  Info,
+  positive: CheckCircle2,
+  warning: AlertTriangle,
+  negative: AlertCircle,
+  neutral: Info,
 };
 
 const INSIGHT_COLORS: Record<string, string> = {
@@ -59,16 +60,24 @@ const INSIGHT_COLORS: Record<string, string> = {
   neutral: "text-zinc-400",
 };
 
-function InsightCard({ insight }: { insight: Insight }) {
-  const Icon = INSIGHT_ICONS[insight.icon] ?? Info;
+function AgentInsightCard({ insight }: { insight: AgentInsight }) {
+  const Icon = INSIGHT_ICONS[insight.type] ?? Info;
   return (
     <div className="flex gap-3 rounded-xl border border-white/5 bg-white/5 p-4">
       <div className={cn("mt-0.5 shrink-0", INSIGHT_COLORS[insight.type])}>
         <Icon className="h-5 w-5" />
       </div>
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-zinc-200">{insight.title}</p>
-        <p className="mt-0.5 text-xs text-zinc-400">{insight.description}</p>
+        <p className="mt-0.5 text-xs text-zinc-400">{insight.message}</p>
+        {insight.actionLabel && insight.actionHref && (
+          <a
+            href={insight.actionHref}
+            className="mt-1.5 inline-block text-xs font-medium text-emerald-400 hover:underline"
+          >
+            {insight.actionLabel} →
+          </a>
+        )}
       </div>
     </div>
   );
@@ -129,6 +138,9 @@ export default function DashboardPage() {
   );
   const { data: upcoming = [] } = useUpcomingTransactions(activeUserId ?? "");
   const { data: categories = [] } = useCategories(activeUserId ?? "");
+  const { data: goals = [] } = useGoals(activeUserId ?? "");
+  const { data: reserveEntries = [] } = useReserveEntries(activeUserId ?? "");
+  const { data: investmentEntries = [] } = useInvestmentEntries(activeUserId ?? "");
 
   const totalIncome = summary?.totalIncome ?? 0;
   const totalExpenses = summary?.totalExpenses ?? 0;
@@ -179,10 +191,43 @@ export default function DashboardPage() {
     });
   }, [transactions]);
 
-  const insights = useMemo(() => {
-    if (!summary) return [];
-    return generateInsights(summary, transactions, categories, profile ?? null);
-  }, [summary, transactions, categories, profile]);
+  // Use agent-orchestrator; fallback to legacy generateInsights if empty
+  const agentInsights = useMemo(() => {
+    if (!summary || !activeUserId) return [];
+    const insights = getInsights(
+      {
+        userId: activeUserId,
+        viewingMode: "own",
+        permissions: ["finances", "investments", "goals"],
+        period: range,
+        transactions,
+        categories,
+        goals,
+        reserveEntries,
+        investmentEntries,
+        profile: profile ?? null,
+        financialSummary: {
+          totalIncome,
+          totalExpenses,
+          balance,
+        },
+      },
+      5,
+    );
+
+    if (insights.length > 0) return insights;
+
+    // Fallback: convert legacy insights to AgentInsight shape
+    const legacy = generateInsights(summary, transactions, categories, profile ?? null);
+    return legacy.map((l, i) => ({
+      id: `legacy-${i}`,
+      agent: "legacy",
+      type: l.type,
+      priority: i,
+      title: l.title,
+      message: l.description,
+    })) satisfies AgentInsight[];
+  }, [summary, activeUserId, transactions, categories, goals, reserveEntries, investmentEntries, profile, totalIncome, totalExpenses, balance]);
 
   function handleQuickParse() {
     if (!quickInput.trim()) return;
@@ -340,16 +385,18 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Insights */}
+        {/* Insights - now using agent-orchestrator */}
         <Card className="border-white/10 bg-white/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-zinc-300">Insights</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {insights.length === 0 ? (
+            {agentInsights.length === 0 ? (
               <p className="text-sm text-zinc-500">Nenhum insight disponível</p>
             ) : (
-              insights.map((insight, i) => <InsightCard key={i} insight={insight} />)
+              agentInsights.map((insight) => (
+                <AgentInsightCard key={insight.id} insight={insight} />
+              ))
             )}
           </CardContent>
         </Card>
